@@ -28,14 +28,15 @@ app.get('/fetch-occupations', async (req, res) => {
       res.status(500).json({ message: 'Error fetching data from the API' });
     }
   });
-app.get('/occupations/:id', async (req, res) => {
-    res.json({params:req.body});
+app.get('/occupations', async (req, res) => {
      try{
-        const occId = req.params.id
+        const occId = req.query.id;
+        const occSort = req.query.sort;
         //API URL
         const occWagesData = `http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occId}`;
         //Fetch data
         const response = await axios.get(occWagesData);
+        console.log({occ_id:occId,occ_sort_type:occSort});
         res.json(response.data);
     }catch (error){
         console.error('Error fetching occupation data', error);
