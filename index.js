@@ -29,15 +29,30 @@ app.get('/fetch-occupations', async (req, res) => {
     }
   });
 app.get('/occupations', async (req, res) => {
-     try{
+    try{
         const occId = req.query.id;
         const occSort = req.query.sort;
+        const selectedData = [];
         //API URL
         const occWagesData = `http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occId}`;
         //Fetch data
         const response = await axios.get(occWagesData);
-        console.log({occ_id:occId,occ_sort_type:occSort});
-        res.json(response.data);
+        const responseArr = response.data.data;
+        responseArr.forEach(occupation => {
+            if (occupation["Year"]==="2022"){
+                const aveWage = occupation["Average Wage"].toFixed(2);
+                selectedData.push({state:occupation["State"],wage:aveWage});
+            }
+        });
+        if (occSort === 'alpha'){
+            res.json(selectedData);
+        }else if(occSort === 'wageDes'){
+            let sortedWages= selectedData.sort((a,b)=>parseFloat(b["wage"]-a["wage"]));
+            res.json(sortedWages);
+        }else if(occSort === 'wageAsc'){
+            let sortedWages= selectedData.sort((a,b)=>parseFloat(a["wage"]-b["wage"]));
+            res.json(sortedWages);
+        }
     }catch (error){
         console.error('Error fetching occupation data', error);
         res.status(500).json({ message: 'Error fetching specific occupation wage data from the API'});
