@@ -41,7 +41,8 @@ app.get('/occupations', async (req, res) => {
         responseArr.forEach(occupation => {
             if (occupation["Year"]==="2022"){
                 const aveWage = occupation["Average Wage"].toFixed(2);
-                selectedData.push({state:occupation["State"],wage:aveWage});
+                const wageMOE = occupation["Average Wage Appx MOE"].toFixed(2);
+                selectedData.push({state:occupation["State"],wage:aveWage,wageMOE});
             }
         });
         if (occSort === 'alpha'){
