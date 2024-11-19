@@ -16,9 +16,7 @@ app.get('/fetch-occupations', async (req, res) => {
         const apiData = response.data.results
         const occArray = [];
         for (const occ of apiData) {
-            console.log("Now checking: ",occ.name);
             if (!occ.id.includes("X")) { // Filter out occupations with "X" in their id
-             
                 occArray.push({ "id": occ.id, "title": occ.name });
             }
           }
@@ -30,4 +28,18 @@ app.get('/fetch-occupations', async (req, res) => {
       res.status(500).json({ message: 'Error fetching data from the API' });
     }
   });
+app.get('/occupations/:id', async (req, res) => {
+    res.json({params:req.body});
+     try{
+        const occId = req.params.id
+        //API URL
+        const occWagesData = `http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occId}`;
+        //Fetch data
+        const response = await axios.get(occWagesData);
+        res.json(response.data);
+    }catch (error){
+        console.error('Error fetching occupation data', error);
+        res.status(500).json({ message: 'Error fetching specific occupation wage data from the API'});
+    }
+});
 app.listen(4322, console.log("Server started on Port 4322"));
