@@ -20,12 +20,12 @@ app.get('/fetch-occupations', async (req, res) => {
         let occArray = [];
         for (const occ of apiData) {
             if (!occ.id.includes("X")) { // Filter out occupations with "X" in their id
-                occArray.push({ "id": occ.id, "title": occ.name });
+                occArray.push({ "id": occ.id, "label": occ.name });
             }
           }
           occArray = occArray.sort(function(a, b) {
-            var textA = a.title.toUpperCase();
-            var textB = b.title.toUpperCase();
+            var textA = a.label.toUpperCase();
+            var textB = b.label.toUpperCase();
             return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
         });
         // Send the response data back to the client
