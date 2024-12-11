@@ -6,7 +6,7 @@ import axios from "axios";
 app.use(cors({ origin: 'http://localhost:3000' }));
 
 app.get("/", (req, res)=> {
-    res.send("Server is running");
+    res.send("Server is running in Vercel");
 });
 app.get('/fetch-occupations', async (req, res) => {
     try {
@@ -36,61 +36,75 @@ app.get('/fetch-occupations', async (req, res) => {
       res.status(500).json({ message: 'Error fetching data from the API' });
     }
   });
-app.get('/occupations', async (req, res) => {
-    try{
-        // Get the id and sort query params and create an array for selected data
+  app.get('/occupations', async (req, res) => {
+    try {
         const occId = req.query.id;
         const occSort = req.query.sort;
+        const allYears = req.query.all_years;
+        const state = req.query.state;
         let selectedData = [];
         const statesArr = [];
         const wagesArr = [];
-        // Make separate arrays for the list of states and their wages. This is for chart.js 
-        function formatArrays (){
-            selectedData.forEach(el=>{
+        let allYearsArr = { years: [], wages: [] }; // Fixed to match expected structure
+
+        // Function to format state and wage arrays
+        function formatArrays() {
+            selectedData.forEach(el => {
                 statesArr.push(el.state);
-                wagesArr.push(el.wage);
+                wagesArr.push(parseFloat(el.wage));
             });
         }
-        //API URL
+
+        // API URL
         const occWagesData = `http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occId}`;
-        //Fetch data
+        
+        // Fetch data
         const response = await axios.get(occWagesData);
         const responseArr = response.data.data;
+
         responseArr.forEach(occupation => {
-            if (occupation["Year"]==="2022"){
-                const aveWage = occupation["Average Wage"]? parseFloat(occupation["Average Wage"]).toFixed(2): "0.00";
-                const wageMOE = occupation["Average Wage Appx MOE"]? parseFloat(occupation["Average Wage Appx MOE"]).toFixed(2): "0.00";
-                selectedData.push({state:occupation["State"],wage:aveWage,wageMOE:wageMOE});
+            const aveWage = occupation["Average Wage"] ? parseFloat(occupation["Average Wage"]).toFixed(0) : "0.00";
+            const wageMOE = occupation["Average Wage Appx MOE"] ? parseFloat(occupation["Average Wage Appx MOE"]).toFixed(0) : "0.00";
+            if (occupation["State"]!="#null" && occupation["State"]!="Puerto Rico"){
+                if (occupation["Year"] === "2022") {
+                    selectedData.push({ state: occupation["State"], wage: aveWage, wageMOE: wageMOE });
+                }
+                
+                if (allYears === "true" && occupation["ID Detailed Occupation"] === occId && occupation.State === state) {
+                    allYearsArr.years = [occupation["Year"],...allYearsArr.years];
+                    allYearsArr.wages = [aveWage,...allYearsArr.wages];
+                }
             }
         });
-        if (occSort === 'alpha'){
-            formatArrays();
-            const stateWageArrays = {
-                wages: wagesArr,
-                states: statesArr
-            }
-            res.json(stateWageArrays);
-        }else if(occSort === 'wageDes'){
-            console.log('state of selected data: ',selectedData);
-            selectedData= selectedData.sort((a,b)=>parseFloat(b["wage"]-a["wage"]));
-            formatArrays();
-            const stateWageArrays = {
-                wages: wagesArr,
-                states: statesArr
-            }
-            res.json(stateWageArrays);
-        }else if(occSort === 'wageAsc'){
-            selectedData= selectedData.sort((a,b)=>parseFloat(a["wage"]-b["wage"]));
-            formatArrays();
-            const stateWageArrays = {
-                wages: wagesArr,
-                states: statesArr
-            }
-            res.json(stateWageArrays);
+
+        if (allYearsArr.years.length) {
+            return res.json(allYearsArr); // Use `return` to stop execution
         }
-    }catch (error){
+
+        const stateWageArrays = {
+            wages: wagesArr,
+            states: statesArr
+        };
+
+        if (occSort === 'alpha') {
+            formatArrays();
+            return res.json(stateWageArrays); // Alpha sorting
+        } else if (occSort === 'wageDes') {
+            selectedData.sort((a, b) => parseFloat(b.wage) - parseFloat(a.wage));
+            formatArrays();
+            return res.json(stateWageArrays); // Wage descending
+        } else if (occSort === 'wageAsc') {
+            selectedData.sort((a, b) => parseFloat(a.wage) - parseFloat(b.wage));
+            formatArrays();
+            return res.json(stateWageArrays); // Wage ascending
+        }
+
+        // Default response if no conditions are met
+        res.status(400).json({ message: 'Invalid query parameters',query_params: req.query });
+    } catch (error) {
         console.error('Error fetching occupation data', error);
-        res.status(500).json({ message: 'Error fetching specific occupation wage data from the API'});
+        res.status(500).json({ message: 'Error fetching specific occupation wage data from the API' });
     }
 });
+
 app.listen(4322, console.log("Server started on Port 4322"));
