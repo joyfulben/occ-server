@@ -3,7 +3,7 @@ const app = express();
 import cors from "cors";
 import axios from "axios";
 
-app.use(cors({ origin: 'https://wage-map.vercel.app/' }));
+app.use(cors({ origin: 'https://wage-map.vercel.app' }));
 
 app.get("/", (req, res)=> {
     res.send("Server is running in Vercel");
