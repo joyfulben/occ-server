@@ -3,7 +3,7 @@ const app = express();
 import cors from "cors";
 import axios from "axios";
 
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({ origin: 'https://co-housing-trends.vercel.app/' }));
 
 app.get("/", (req, res)=> {
     res.send("Server is running in Vercel");
