@@ -22,6 +22,7 @@ async function initializeApp() {
         // Use Promise.all to handle async checks for each occupation
         const occList = await Promise.all(
             occArray.map(async (el) => {
+                return el;
                 try {
                     let res = await axios.get(specOccAPIData + el.id);
                     if (res.data.length) {
