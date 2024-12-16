@@ -4,48 +4,57 @@ import cors from "cors";
 import axios from "axios";
 const occList = [];
 app.use(cors({ origin: 'https://wage-map.vercel.app' }));
-async function initializeApp (){
+async function initializeApp() {
     try {
         // API URLS
         const occAPIData = 'https://delaware-app.datausa.io/api/searchLegacy?dimension=PUMS%20Occupation&hierarchy=Detailed%20Occupation&limit=50000';
-        const specOccAPIData = 'http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation='
+        const specOccAPIData = 'http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=';
+        
         // Make GET request to the third-party API
         const response = await axios.get(occAPIData);
-        // Make an array of objects containing the occupation id and title.
-        const apiData = response.data.results
-        let occArray = [];
-        for (const occ of apiData) {
-            if (!occ.id.includes("X")) { // Filter out occupations with "X" in their id
-                occArray.push({ "id": occ.id, "label": occ.name });
-            }
-          }
-          occArray = occArray.sort(function(a, b) {
-            var textA = a.label.toUpperCase();
-            var textB = b.label.toUpperCase();
-            return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
-        });
-        // Send the response data back to the client
-        occArray.forEach(async el => {
-            let res = await axios.get(specOccAPIData+el.id);
-            if (res.data.length){
-                occList.push(el);
-                console.log("Pushing checked occupation to array: ", el);
-            }
-        });
-        return occList;
+        
+        // Make an array of objects containing the occupation id and title
+        let occArray = response.data.results
+            .filter(occ => !occ.id.includes("X"))
+            .map(occ => ({ id: occ.id, label: occ.name }))
+            .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
+
+        // Use Promise.all to handle async checks for each occupation
+        const occList = await Promise.all(
+            occArray.map(async (el) => {
+                try {
+                    let res = await axios.get(specOccAPIData + el.id);
+                    if (res.data.length) {
+                        return el;
+                    }
+                    return null;
+                } catch (error) {
+                    console.error(`Error checking occupation ${el.id}:`, error);
+                    return null;
+                }
+            })
+        );
+
+        // Filter out null values
+        return occList.filter(occ => occ !== null);
     } catch (error) {
-      // Handle any errors
-      console.error('Error fetching data:', error);
+        console.error('Error fetching data:', error);
+        return [];
     }
 };
-app.get("/initialize-check", async (req, res)=> {
-   const sortedList = await initializeApp(); 
-   if (sortedList.length){
-    res.json({"Status": 200, "Occupation List": sortedList});
-   }else{
-    res.json({"Status": 400, "Message":"Something went wrong with the occupation check"});
-   }
-});
+app.get("/initialize-check", async (req, res) => {
+    try {
+        const sortedList = await initializeApp(); 
+        if (sortedList.length) {
+            res.json({"Status": 200, "Occupation List": sortedList});
+        } else {
+            res.json({"Status": 400, "Message": "No occupations found"});
+        }
+    } catch (error) {
+        console.error('Route error:', error);
+        res.status(500).json({"Status": 500, "Message": "Server error during initialization"});
+    }
+ });
 app.get("/", (req, res)=> {
     res.send("Server is running in Vercel");
 });
