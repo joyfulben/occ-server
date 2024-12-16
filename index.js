@@ -34,7 +34,6 @@ async function initializeApp (){
     } catch (error) {
       // Handle any errors
       console.error('Error fetching data:', error);
-      res.status(500).json({ message: 'Error fetching data from the API' });
     }
 };
 app.get("/", (req, res)=> {
