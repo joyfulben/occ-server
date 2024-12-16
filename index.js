@@ -32,11 +32,20 @@ async function initializeApp (){
                 console.log("Pushing checked occupation to array: ", el);
             }
         });
+        return occList;
     } catch (error) {
       // Handle any errors
       console.error('Error fetching data:', error);
     }
 };
+app.get("/initialization-check", (req, res)=> {
+   const sortedList = initializeApp(); 
+   if (sortedList.length){
+    res.json({"Status": 200, "Occupation List": sortedList});
+   }else{
+    res.json({"Status": 400, "Message":"Something went wrong with the occupation check"});
+   }
+});
 app.get("/", (req, res)=> {
     res.send("Server is running in Vercel");
 });
@@ -116,4 +125,3 @@ app.get('/occupations', async (req, res) => {
 });
 
 app.listen(4322, console.log("Server started on Port 4322"));
-initializeApp();
