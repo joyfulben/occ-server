@@ -38,8 +38,8 @@ async function initializeApp (){
       console.error('Error fetching data:', error);
     }
 };
-app.get("/initialization-check", (req, res)=> {
-   const sortedList = initializeApp(); 
+app.get("/initialize-check", async (req, res)=> {
+   const sortedList = await initializeApp(); 
    if (sortedList.length){
     res.json({"Status": 200, "Occupation List": sortedList});
    }else{
