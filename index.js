@@ -36,7 +36,7 @@ async function initializeApp() {
         // );
 
         // Filter out null values
-        return occList.filter(occ => occ !== null);
+        return occArray.filter(occ => occ !== null);
     } catch (error) {
         console.error('Error fetching data:', error);
         return [];
