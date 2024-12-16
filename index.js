@@ -60,6 +60,7 @@ app.get("/", (req, res)=> {
     res.send("Server is running in Vercel");
 });
 app.get('/fetch-occupations', async (req, res) => {
+    await initializeApp();
     res.json({total_occupations:occList.length, occupations: occList});
 });
     
