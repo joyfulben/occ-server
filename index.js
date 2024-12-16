@@ -29,6 +29,7 @@ async function initializeApp (){
             let res = await axios.get(specOccAPIData+el.id);
             if (res.data.length){
                 occList.push(el);
+                console.log("Pushing checked occupation to array: ", el);
             }
         });
     } catch (error) {
