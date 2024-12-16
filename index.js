@@ -2,7 +2,7 @@ import express from "express";
 const app = express();
 import cors from "cors";
 import axios from "axios";
-const occList = [];
+let occList = [];
 app.use(cors({ origin: 'https://wage-map.vercel.app' }));
 async function initializeApp() {
     try {
@@ -36,6 +36,7 @@ async function initializeApp() {
         // );
 
         // Filter out null values
+        occList = occArray;
         return occArray.filter(occ => occ !== null);
     } catch (error) {
         console.error('Error fetching data:', error);
