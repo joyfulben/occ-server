@@ -20,21 +20,20 @@ async function initializeApp() {
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
 
         // Use Promise.all to handle async checks for each occupation
-        const occList = await Promise.all(
-            occArray.map(async (el) => {
-                return el;
-                try {
-                    let res = await axios.get(specOccAPIData + el.id);
-                    if (res.data.length) {
-                        return el;
-                    }
-                    return null;
-                } catch (error) {
-                    console.error(`Error checking occupation ${el.id}:`, error);
-                    return null;
-                }
-            })
-        );
+        // const occList = await Promise.all(
+        //     occArray.map(async (el) => {
+        //         try {
+        //             let res = await axios.get(specOccAPIData + el.id);
+        //             if (res.data.length) {
+        //                 return el;
+        //             }
+        //             return null;
+        //         } catch (error) {
+        //             console.error(`Error checking occupation ${el.id}:`, error);
+        //             return null;
+        //         }
+        //     })
+        // );
 
         // Filter out null values
         return occList.filter(occ => occ !== null);
