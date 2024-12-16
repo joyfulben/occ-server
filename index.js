@@ -2,13 +2,9 @@ import express from "express";
 const app = express();
 import cors from "cors";
 import axios from "axios";
-
+const occList = [];
 app.use(cors({ origin: 'https://wage-map.vercel.app' }));
-
-app.get("/", (req, res)=> {
-    res.send("Server is running in Vercel");
-});
-app.get('/fetch-occupations', async (req, res) => {
+async function initializeApp (){
     try {
         // API URLS
         const occAPIData = 'https://delaware-app.datausa.io/api/searchLegacy?dimension=PUMS%20Occupation&hierarchy=Detailed%20Occupation&limit=50000';
@@ -29,14 +25,26 @@ app.get('/fetch-occupations', async (req, res) => {
             return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
         });
         // Send the response data back to the client
-        res.json({total_occupations:occArray.length, occupations: occArray});
+        occArray.forEach(async el => {
+            let res = await axios.get(specOccAPIData+el.id);
+            if (res.data.length){
+                occList.push(el);
+            }
+        });
     } catch (error) {
       // Handle any errors
       console.error('Error fetching data:', error);
       res.status(500).json({ message: 'Error fetching data from the API' });
     }
-  });
-  app.get('/occupations', async (req, res) => {
+};
+app.get("/", (req, res)=> {
+    res.send("Server is running in Vercel");
+});
+app.get('/fetch-occupations', async (req, res) => {
+    res.json({total_occupations:occList.length, occupations: occList});
+});
+    
+app.get('/occupations', async (req, res) => {
     try {
         const occId = req.query.id;
         const occSort = req.query.sort;
@@ -108,3 +116,4 @@ app.get('/fetch-occupations', async (req, res) => {
 });
 
 app.listen(4322, console.log("Server started on Port 4322"));
+initializeApp();
