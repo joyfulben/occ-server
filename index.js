@@ -64,7 +64,21 @@ function handleApiError(error, res) {
     }
 }
 
-// Initialize App Function Without p-limit
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchOccupationData(occupation) {
+    try {
+        const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
+        const response = await axiosInstance.get(occCheckUrl);
+        return response.data.data && response.data.data.length > 0 ? occupation : null;
+    } catch (error) {
+        console.warn(`Error fetching data for ${occupation.id}:`, error.message);
+        return null;
+    }
+}
+
 async function initializeApp() {
     try {
         const response = await axiosInstance.get(OCC_API_URL);
@@ -81,20 +95,11 @@ async function initializeApp() {
 
         const validatedOccupations = [];
         for (const occupation of occArray) {
-            try {
-                setTimeout(async() => {
-                    const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
-                    const response = await axiosInstance.get(occCheckUrl);
-                    
-                    // If the response has meaningful data, add the occupation to the list
-                    if (response.data.data && response.data.data.length > 0) {
-                        validatedOccupations.push(occupation);
-                    }
-                }, 500);
-            } catch (error) {
-                console.warn(`No data found for occupation ID: ${occupation.id}`);
-                // Continue without stopping execution
-            }
+            const data = await fetchOccupationData(occupation);
+            if (data) validatedOccupations.push(data);
+    
+            // Throttle by delaying between requests
+            await delay(500); // Delay 200ms between requests
         }
 
         // Final sorting before assigning to occList
