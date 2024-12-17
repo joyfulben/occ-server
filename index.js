@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
-import rateLimit from "express-rate-limit"; // Recommended for rate limiting
 
 const app = express();
 
@@ -13,15 +12,6 @@ const DATAUSA_BASE_URL = 'http://datausa.io/api/data';
 
 // Middleware
 app.use(cors({ origin: CORS_ORIGIN }));
-
-// Add this before creating the limiter
-app.set('trust proxy', true);
-// Rate Limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
 
 // Global variable to store occupation list
 let occList = [];
