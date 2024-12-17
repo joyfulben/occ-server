@@ -64,7 +64,14 @@ function handleApiError(error, res) {
     }
 }
 
-async function initializeApp() {
+
+// Routes with Improved Error Handling and Validation
+
+app.get("/", (req, res) => {
+    res.send("Server is running in Vercel");
+});
+
+app.get('/fetch-occupations', async (req, res) => {
     try {
         const response = await axiosInstance.get(OCC_API_URL);
 
@@ -75,29 +82,14 @@ async function initializeApp() {
                 label: occ.name
             }))
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
-
-        occList = []; // Reset occList before populating
-
-        return occList;
+            res.json({
+                total_occupations: occArray.length, 
+                occupations: occArray
+            });
     } catch (error) {
         logError(error, { type: 'Initialization Error' });
-        return [];
+        res.json({"Error message": error});
     }
-}
-
-
-// Routes with Improved Error Handling and Validation
-
-app.get("/", (req, res) => {
-    res.send("Server is running in Vercel");
-});
-
-app.get('/fetch-occupations', (req, res) => {
-    initializeApp();
-    res.json({
-        total_occupations: occList.length, 
-        occupations: occList
-    });
 });
 
 app.get('/occupations', async (req, res) => {
