@@ -7,9 +7,9 @@ const app = express();
 
 // Environment Configuration
 const PORT = process.env.PORT || 4322;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://wage-map.vercel.app';
-const OCC_API_URL = process.env.OCC_API_URL || 'https://delaware-app.datausa.io/api/searchLegacy?dimension=PUMS%20Occupation&hierarchy=Detailed%20Occupation&limit=50000';
-const DATAUSA_BASE_URL = process.env.DATAUSA_BASE_URL || 'http://datausa.io/api/data';
+const CORS_ORIGIN = 'https://wage-map.vercel.app';
+const OCC_API_URL = 'https://delaware-app.datausa.io/api/searchLegacy?dimension=PUMS%20Occupation&hierarchy=Detailed%20Occupation&limit=50000';
+const DATAUSA_BASE_URL = 'http://datausa.io/api/data';
 
 // Axios Configuration
 const axiosInstance = axios.create({
