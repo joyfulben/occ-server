@@ -20,20 +20,18 @@ async function initializeApp() {
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
 
         // Use Promise.all to handle async checks for each occupation
-        // const occList = await Promise.all(
-        //     occArray.map(async (el) => {
-        //         try {
-        //             let res = await axios.get(specOccAPIData + el.id);
-        //             if (res.data.length) {
-        //                 return el;
-        //             }
-        //             return null;
-        //         } catch (error) {
-        //             console.error(`Error checking occupation ${el.id}:`, error);
-        //             return null;
-        //         }
-        //     })
-        // );
+        const occList = await Promise.all(
+            occArray.map(async (el) => {
+                try {
+                    let res = await axios.get(specOccAPIData + el.id);
+                    if (res.data.length) {
+                        occList.push(el);
+                    }
+                } catch (error) {
+                    console.error(`Error checking occupation ${el.id}:`, error);
+                }
+            })
+        );
 
         // Filter out null values
         occList = occArray;
@@ -46,10 +44,8 @@ async function initializeApp() {
 app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
-        // const sampleCheck = await axios.get(specOccAPIData+sortedList[2].id);
-        const apiID = `${specOccAPIData+sortedList[2]["id"]}`;
         if (sortedList.length) {
-            res.json({"Status": 200, "Sample Check": apiID, "Occupation List": sortedList});
+            res.json({"Status": 200, "Occupation List": sortedList});
         } else {
             res.json({"Status": 400, "Message": "No occupations found"});
         }
@@ -62,7 +58,6 @@ app.get("/", (req, res)=> {
     res.send("Server is running in Vercel");
 });
 app.get('/fetch-occupations', async (req, res) => {
-    await initializeApp();
     res.json({total_occupations:occList.length, occupations: occList});
 });
     
