@@ -4,11 +4,11 @@ import cors from "cors";
 import axios from "axios";
 let occList = [];
 app.use(cors({ origin: 'https://wage-map.vercel.app' }));
+const specOccAPIData = 'http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=';
 async function initializeApp() {
     try {
         // API URLS
         const occAPIData = 'https://delaware-app.datausa.io/api/searchLegacy?dimension=PUMS%20Occupation&hierarchy=Detailed%20Occupation&limit=50000';
-        const specOccAPIData = 'http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=';
         
         // Make GET request to the third-party API
         const response = await axios.get(occAPIData);
@@ -47,7 +47,7 @@ app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
         // const sampleCheck = await axios.get(specOccAPIData+sortedList[2].id);
-        const apiID = `${sortedList[2]["id"]}`;
+        const apiID = `${specOccAPIData+sortedList[2]["id"]}`;
         if (sortedList.length) {
             res.json({"Status": 200, "Sample Check": apiID, "Occupation List": sortedList});
         } else {
