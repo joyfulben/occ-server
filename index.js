@@ -47,7 +47,7 @@ async function initializeApp() {
 app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
-        const sampleData = await axios.get("http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=152011");
+        const sampleData = await Promise(axios.get("http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=152011"));
         // const apiurl = specOccAPIData+occList[2]["id"];
         if (sortedList.length) {
             res.json({"Status": 200,"Sample data response":sampleData, "Occupation List": sortedList});
