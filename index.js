@@ -47,10 +47,10 @@ async function initializeApp() {
 app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
-        // const sampleData = await axios.get(specOccAPIData+occList[2]["id"]);
-        const apiurl = specOccAPIData+occList[2]["id"];
+        const sampleData = await axios.get("http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=152011");
+        // const apiurl = specOccAPIData+occList[2]["id"];
         if (sortedList.length) {
-            res.json({"Status": 200,"Sample data response":apiurl, "Occupation List": sortedList});
+            res.json({"Status": 200,"Sample data response":sampleData, "Occupation List": sortedList});
         } else {
             res.json({"Status": 400, "Message": "No occupations found"});
         }
