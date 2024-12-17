@@ -14,6 +14,8 @@ const DATAUSA_BASE_URL = 'http://datausa.io/api/data';
 // Middleware
 app.use(cors({ origin: CORS_ORIGIN }));
 
+// Add this before creating the limiter
+app.set('trust proxy', true);
 // Rate Limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
