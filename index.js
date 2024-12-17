@@ -20,18 +20,21 @@ async function initializeApp() {
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
 
         // Use Promise.all to handle async checks for each occupation
-        const occList = await Promise.all(
-            occArray.map(async (el) => {
-                try {
-                    let res = await axios.get(specOccAPIData + el.id);
-                    if (res.data.length) {
-                        occList.push(el);
-                    }
-                } catch (error) {
-                    console.error(`Error checking occupation ${el.id}:`, error);
-                }
-            })
-        );
+        // const occList = await Promise.all(
+
+            // occArray.map(async (el) => {
+            //     try {
+            //         let res = await axios.get(specOccAPIData + el.id);
+            //         if (res.data.length) {
+            //             occList.push(el);
+            //         } else {
+
+            //         }
+            //     } catch (error) {
+            //         console.error(`Error checking occupation ${el.id}:`, error);
+            //     }
+            // })
+        // );
 
         // Filter out null values
         occList = occArray;
@@ -44,8 +47,9 @@ async function initializeApp() {
 app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
+        const sampleData = await axios.get(specOccAPIData+occList[2].id);
         if (sortedList.length) {
-            res.json({"Status": 200, "Occupation List": sortedList});
+            res.json({"Status": 200,"Sample data response":sampleData, "Occupation List": sortedList});
         } else {
             res.json({"Status": 400, "Message": "No occupations found"});
         }
