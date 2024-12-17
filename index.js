@@ -99,7 +99,7 @@ async function initializeApp() {
             if (data) validatedOccupations.push(data);
     
             // Throttle by delaying between requests
-            await delay(500); // Delay 200ms between requests
+            await delay(200); // Delay 200ms between requests
         }
 
         // Final sorting before assigning to occList
