@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
-import pLimit from 'p-limit';
 
 const app = express();
 
@@ -65,57 +64,49 @@ function handleApiError(error, res) {
     }
 }
 
-// Initialize App Function with Improved Performance and Error Handling
+// Initialize App Function Without p-limit
 async function initializeApp() {
     try {
         const response = await axiosInstance.get(OCC_API_URL);
-        
+
         const occArray = response.data.results
             .filter(occ => occ && occ.id && !occ.id.includes("X"))
-            .map(occ => ({ 
-                id: occ.id, 
-                label: occ.name 
+            .map(occ => ({
+                id: occ.id,
+                label: occ.name
             }))
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
 
-        // Reset occList before populating
-        occList = [];
+        occList = []; // Reset occList before populating
 
-        // Limit concurrent requests
-        const limit = pLimit(10);
+        const validatedOccupations = [];
+        for (const occupation of occArray) {
+            try {
+                const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
+                const response = await axiosInstance.get(occCheckUrl);
 
-        const validationPromises = occArray.map(occupation => 
-            limit(async () => {
-                try {
-                    const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
-                    
-                    const response = await axiosInstance.get(occCheckUrl);
-                    
-                    // If the response has meaningful data, return the occupation
-                    if (response.data.data && response.data.data.length > 0) {
-                        return occupation;
-                    }
-                    return null;
-                } catch (error) {
-                    console.warn(`No data found for occupation ID: ${occupation.id}`);
-                    return null;
+                // If the response has meaningful data, add the occupation to the list
+                if (response.data.data && response.data.data.length > 0) {
+                    validatedOccupations.push(occupation);
                 }
-            })
+            } catch (error) {
+                console.warn(`No data found for occupation ID: ${occupation.id}`);
+                // Continue without stopping execution
+            }
+        }
+
+        // Final sorting before assigning to occList
+        occList = validatedOccupations.sort((a, b) =>
+            a.label.toUpperCase().localeCompare(b.label.toUpperCase())
         );
 
-        const validatedOccupations = await Promise.all(validationPromises);
-        
-        // Filter out null values and update occList
-        occList = validatedOccupations
-            .filter(occ => occ !== null)
-            .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
-        
         return occList;
     } catch (error) {
         logError(error, { type: 'Initialization Error' });
         return [];
     }
 }
+
 
 // Routes with Improved Error Handling and Validation
 
