@@ -47,7 +47,7 @@ async function initializeApp() {
 app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
-        const sampleData = await axios.get(specOccAPIData+occList[2].id);
+        const sampleData = await axios.get(specOccAPIData+occList[2]["id"]);
         if (sortedList.length) {
             res.json({"Status": 200,"Sample data response":sampleData, "Occupation List": sortedList});
         } else {
