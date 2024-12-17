@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
+import pLimit from 'p-limit';
 
 const app = express();
 
@@ -8,7 +9,21 @@ const app = express();
 const PORT = process.env.PORT || 4322;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://wage-map.vercel.app';
 const OCC_API_URL = process.env.OCC_API_URL || 'https://delaware-app.datausa.io/api/searchLegacy?dimension=PUMS%20Occupation&hierarchy=Detailed%20Occupation&limit=50000';
-const DATAUSA_BASE_URL = 'http://datausa.io/api/data';
+const DATAUSA_BASE_URL = process.env.DATAUSA_BASE_URL || 'http://datausa.io/api/data';
+
+// Axios Configuration
+const axiosInstance = axios.create({
+    timeout: 10000, // 10 seconds timeout
+});
+
+// Global Axios Error Interceptor
+axiosInstance.interceptors.response.use(
+    response => response,
+    error => {
+        logError(error, { type: 'Axios Request Error' });
+        return Promise.reject(error);
+    }
+);
 
 // Middleware
 app.use(cors({ origin: CORS_ORIGIN }));
@@ -16,9 +31,19 @@ app.use(cors({ origin: CORS_ORIGIN }));
 // Global variable to store occupation list
 let occList = [];
 
+// Robust Error Logging Utility
+function logError(error, context = {}) {
+    console.error(JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        context: context,
+        timestamp: new Date().toISOString()
+    }));
+}
+
 // Comprehensive Error Handling Utility
 function handleApiError(error, res) {
-    console.error('API Error:', error);
+    logError(error, { type: 'API Error' });
     
     if (error.response) {
         res.status(error.response.status).json({
@@ -40,10 +65,10 @@ function handleApiError(error, res) {
     }
 }
 
-// Initialize App Function with Improved Error Handling
+// Initialize App Function with Improved Performance and Error Handling
 async function initializeApp() {
     try {
-        const response = await axios.get(OCC_API_URL);
+        const response = await axiosInstance.get(OCC_API_URL);
         
         const occArray = response.data.results
             .filter(occ => occ && occ.id && !occ.id.includes("X"))
@@ -56,27 +81,38 @@ async function initializeApp() {
         // Reset occList before populating
         occList = [];
 
-        for (const occupation of occArray) {
-            try {
-                const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
-                
-                const response = await axios.get(occCheckUrl);
-                
-                // If the response has meaningful data, push to occList
-                if (response.data.data && response.data.data.length > 0) {
-                    occList.push(occupation);
+        // Limit concurrent requests
+        const limit = pLimit(10);
+
+        const validationPromises = occArray.map(occupation => 
+            limit(async () => {
+                try {
+                    const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
+                    
+                    const response = await axiosInstance.get(occCheckUrl);
+                    
+                    // If the response has meaningful data, return the occupation
+                    if (response.data.data && response.data.data.length > 0) {
+                        return occupation;
+                    }
+                    return null;
+                } catch (error) {
+                    console.warn(`No data found for occupation ID: ${occupation.id}`);
+                    return null;
                 }
-            } catch (error) {
-                console.warn(`No data found for occupation ID: ${occupation.id}`);
-            }
-        }
+            })
+        );
+
+        const validatedOccupations = await Promise.all(validationPromises);
         
-        // Sort the validated list alphabetically
-        occList.sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
+        // Filter out null values and update occList
+        occList = validatedOccupations
+            .filter(occ => occ !== null)
+            .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
         
         return occList;
     } catch (error) {
-        console.error('Error fetching or validating occupation data:', error);
+        logError(error, { type: 'Initialization Error' });
         return [];
     }
 }
@@ -91,7 +127,7 @@ app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
         
-        const sampleData = await axios.get(`${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=152011`);
+        const sampleData = await axiosInstance.get(`${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=152011`);
         
         if (sortedList.length) {
             res.json({
@@ -136,7 +172,7 @@ app.get('/occupations', async (req, res) => {
 
         const occWagesData = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occId}`;
         
-        const response = await axios.get(occWagesData);
+        const response = await axiosInstance.get(occWagesData);
         const responseArr = response.data.data;
 
         if (!responseArr || responseArr.length === 0) {
