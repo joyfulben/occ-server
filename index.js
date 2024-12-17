@@ -1,140 +1,199 @@
 import express from "express";
-const app = express();
 import cors from "cors";
 import axios from "axios";
+import rateLimit from "express-rate-limit"; // Recommended for rate limiting
+
+const app = express();
+
+// Environment Configuration
+const PORT = process.env.PORT || 4322;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://wage-map.vercel.app';
+const OCC_API_URL = process.env.OCC_API_URL || 'https://delaware-app.datausa.io/api/searchLegacy?dimension=PUMS%20Occupation&hierarchy=Detailed%20Occupation&limit=50000';
+const DATAUSA_BASE_URL = 'http://datausa.io/api/data';
+
+// Middleware
+app.use(cors({ origin: CORS_ORIGIN }));
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+// Global variable to store occupation list
 let occList = [];
-app.use(cors({ origin: 'https://wage-map.vercel.app' }));
-const specOccAPIData = 'http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=';
+
+// Comprehensive Error Handling Utility
+function handleApiError(error, res) {
+    console.error('API Error:', error);
+    
+    if (error.response) {
+        res.status(error.response.status).json({
+            message: 'API request failed',
+            details: error.response.data,
+            status: 'error'
+        });
+    } else if (error.request) {
+        res.status(500).json({
+            message: 'No response received from API',
+            status: 'network_error'
+        });
+    } else {
+        res.status(500).json({
+            message: 'Error processing request',
+            error: error.message,
+            status: 'server_error'
+        });
+    }
+}
+
+// Initialize App Function with Improved Error Handling
 async function initializeApp() {
     try {
-        // API URLS
-        const occAPIData = 'https://delaware-app.datausa.io/api/searchLegacy?dimension=PUMS%20Occupation&hierarchy=Detailed%20Occupation&limit=50000';
+        const response = await axios.get(OCC_API_URL);
         
-        // Make GET request to the third-party API
-        const response = await axios.get(occAPIData);
-        
-        // Make an array of objects containing the occupation id and title
-        let occArray = response.data.results
-            .filter(occ => !occ.id.includes("X"))
-            .map(occ => ({ id: occ.id, label: occ.name }))
+        const occArray = response.data.results
+            .filter(occ => occ && occ.id && !occ.id.includes("X"))
+            .map(occ => ({ 
+                id: occ.id, 
+                label: occ.name 
+            }))
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
 
-        // Use Promise.all to handle async checks for each occupation
-        // const occList = await Promise.all(
-
-            // occArray.map(async (el) => {
-            //     try {
-            //         let res = await axios.get(specOccAPIData + el.id);
-            //         if (res.data.length) {
-            //             occList.push(el);
-            //         } else {
-
-            //         }
-            //     } catch (error) {
-            //         console.error(`Error checking occupation ${el.id}:`, error);
-            //     }
-            // })
-        // );
-
-        // Filter out null values
+        // Update global occList
         occList = occArray;
-        return occArray.filter(occ => occ !== null);
+        
+        return occArray;
     } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching occupation data:', error);
         return [];
     }
-};
+}
+
+// Routes with Improved Error Handling and Validation
+
+app.get("/", (req, res) => {
+    res.send("Server is running in Vercel");
+});
+
 app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
-        const sampleData = await Promise(axios.get("http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=152011"));
-        // const apiurl = specOccAPIData+occList[2]["id"];
+        
+        const sampleData = await axios.get(`${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=152011`);
+        
         if (sortedList.length) {
-            res.json({"Status": 200,"Sample data response":sampleData, "Occupation List": sortedList});
+            res.json({
+                "Status": 200,
+                "Sample data response": sampleData.data, 
+                "Occupation List": sortedList
+            });
         } else {
-            res.json({"Status": 400, "Message": "No occupations found"});
+            res.status(404).json({
+                "Status": 404, 
+                "Message": "No occupations found"
+            });
         }
     } catch (error) {
-        console.error('Route error:', error);
-        res.status(500).json({"Status": 500, "Message": "Server error during initialization"});
+        handleApiError(error, res);
     }
- });
-app.get("/", (req, res)=> {
-    res.send("Server is running in Vercel");
 });
-app.get('/fetch-occupations', async (req, res) => {
-    res.json({total_occupations:occList.length, occupations: occList});
+
+app.get('/fetch-occupations', (req, res) => {
+    res.json({
+        total_occupations: occList.length, 
+        occupations: occList
+    });
 });
-    
+
 app.get('/occupations', async (req, res) => {
     try {
-        const occId = req.query.id;
-        const occSort = req.query.sort;
-        const allYears = req.query.all_years;
-        const state = req.query.state;
-        let selectedData = [];
-        const statesArr = [];
-        const wagesArr = [];
-        let allYearsArr = { years: [], wages: [] }; // Fixed to match expected structure
-
-        // Function to format state and wage arrays
-        function formatArrays() {
-            selectedData.forEach(el => {
-                statesArr.push(el.state);
-                wagesArr.push(parseFloat(el.wage));
+        const { 
+            id: occId, 
+            sort: occSort, 
+            all_years: allYears, 
+            state 
+        } = req.query;
+        
+        // Validate required parameters
+        if (!occId) {
+            return res.status(400).json({ 
+                message: 'Occupation ID is required',
+                status: 'error'
             });
         }
 
-        // API URL
-        const occWagesData = `http://datausa.io/api/data?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occId}`;
+        const occWagesData = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occId}`;
         
-        // Fetch data
         const response = await axios.get(occWagesData);
         const responseArr = response.data.data;
 
+        if (!responseArr || responseArr.length === 0) {
+            return res.status(404).json({ 
+                message: 'No data found for the specified occupation',
+                status: 'not_found'
+            });
+        }
+
+        const selectedData = [];
+        const allYearsArr = { years: [], wages: [] };
+        const statesArr = [];
+        const wagesArr = [];
+
         responseArr.forEach(occupation => {
-            const aveWage = occupation["Average Wage"] ? parseFloat(occupation["Average Wage"]).toFixed(0) : "0.00";
-            const wageMOE = occupation["Average Wage Appx MOE"] ? parseFloat(occupation["Average Wage Appx MOE"]).toFixed(0) : "0.00";
-            if (occupation["State"]!="#null" && occupation["State"]!="Puerto Rico"){
+            const aveWage = occupation["Average Wage"] 
+                ? parseFloat(occupation["Average Wage"]).toFixed(0) 
+                : "0.00";
+            const wageMOE = occupation["Average Wage Appx MOE"] 
+                ? parseFloat(occupation["Average Wage Appx MOE"]).toFixed(0) 
+                : "0.00";
+
+            if (occupation["State"] !== "#null" && occupation["State"] !== "Puerto Rico") {
                 if (occupation["Year"] === "2022") {
-                    selectedData.push({ state: occupation["State"], wage: aveWage, wageMOE: wageMOE });
+                    selectedData.push({ 
+                        state: occupation["State"], 
+                        wage: aveWage, 
+                        wageMOE: wageMOE 
+                    });
                 }
                 
-                if (allYears === "true" && occupation["ID Detailed Occupation"] === occId && occupation.State === state) {
-                    allYearsArr.years = [occupation["Year"],...allYearsArr.years];
-                    allYearsArr.wages = [aveWage,...allYearsArr.wages];
+                if (allYears === "true" && 
+                    occupation["ID Detailed Occupation"] === occId && 
+                    occupation.State === state) {
+                    allYearsArr.years.unshift(occupation["Year"]);
+                    allYearsArr.wages.unshift(aveWage);
                 }
             }
         });
 
         if (allYearsArr.years.length) {
-            return res.json(allYearsArr); // Use `return` to stop execution
+            return res.json(allYearsArr);
         }
 
-        const stateWageArrays = {
-            wages: wagesArr,
-            states: statesArr
-        };
-
+        // Sorting logic
         if (occSort === 'alpha') {
-            formatArrays();
-            return res.json(stateWageArrays); // Alpha sorting
+            selectedData.sort((a, b) => a.state.localeCompare(b.state));
         } else if (occSort === 'wageDes') {
             selectedData.sort((a, b) => parseFloat(b.wage) - parseFloat(a.wage));
-            formatArrays();
-            return res.json(stateWageArrays); // Wage descending
         } else if (occSort === 'wageAsc') {
             selectedData.sort((a, b) => parseFloat(a.wage) - parseFloat(b.wage));
-            formatArrays();
-            return res.json(stateWageArrays); // Wage ascending
         }
 
-        // Default response if no conditions are met
-        res.status(400).json({ message: 'Invalid query parameters',query_params: req.query });
+        selectedData.forEach(el => {
+            statesArr.push(el.state);
+            wagesArr.push(parseFloat(el.wage));
+        });
+
+        return res.json({
+            wages: wagesArr,
+            states: statesArr
+        });
+
     } catch (error) {
-        console.error('Error fetching occupation data', error);
-        res.status(500).json({ message: 'Error fetching specific occupation wage data from the API' });
+        handleApiError(error, res);
     }
 });
 
-app.listen(4322, console.log("Server started on Port 4322"));
+// Start Server
+app.listen(PORT, () => console.log(`Server started on Port ${PORT}`));
