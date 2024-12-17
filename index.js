@@ -61,12 +61,30 @@ async function initializeApp() {
             }))
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
 
-        // Update global occList
-        occList = occArray;
+        // Reset occList before populating
+        occList = [];
+
+        for (const occupation of occArray) {
+            try {
+                const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
+                
+                const response = await axios.get(occCheckUrl);
+                
+                // If the response has meaningful data, push to occList
+                if (response.data.data && response.data.data.length > 0) {
+                    occList.push(occupation);
+                }
+            } catch (error) {
+                console.warn(`No data found for occupation ID: ${occupation.id}`);
+            }
+        }
         
-        return occArray;
+        // Sort the validated list alphabetically
+        occList.sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
+        
+        return occList;
     } catch (error) {
-        console.error('Error fetching occupation data:', error);
+        console.error('Error fetching or validating occupation data:', error);
         return [];
     }
 }
