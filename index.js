@@ -64,21 +64,6 @@ function handleApiError(error, res) {
     }
 }
 
-async function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function fetchOccupationData(occupation) {
-    try {
-        const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
-        const response = await axiosInstance.get(occCheckUrl);
-        return response.data.data && response.data.data.length > 0 ? occupation : null;
-    } catch (error) {
-        console.warn(`Error fetching data for ${occupation.id}:`, error.message);
-        return null;
-    }
-}
-
 async function initializeApp() {
     try {
         const response = await axiosInstance.get(OCC_API_URL);
@@ -92,20 +77,6 @@ async function initializeApp() {
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
 
         occList = []; // Reset occList before populating
-
-        const validatedOccupations = [];
-        for (const occupation of occArray) {
-            const data = await fetchOccupationData(occupation);
-            if (data) validatedOccupations.push(data);
-    
-            // Throttle by delaying between requests
-            await delay(200); // Delay 200ms between requests
-        }
-
-        // Final sorting before assigning to occList
-        occList = validatedOccupations.sort((a, b) =>
-            a.label.toUpperCase().localeCompare(b.label.toUpperCase())
-        );
 
         return occList;
     } catch (error) {
@@ -121,30 +92,8 @@ app.get("/", (req, res) => {
     res.send("Server is running in Vercel");
 });
 
-app.get("/initialize-check", async (req, res) => {
-    try {
-        const sortedList = await initializeApp(); 
-        
-        const sampleData = await axiosInstance.get(`${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=152011`);
-        
-        if (sortedList.length) {
-            res.json({
-                "Status": 200,
-                "Sample data response": sampleData.data, 
-                "Occupation List": sortedList
-            });
-        } else {
-            res.status(404).json({
-                "Status": 404, 
-                "Message": "No occupations found"
-            });
-        }
-    } catch (error) {
-        handleApiError(error, res);
-    }
-});
-
 app.get('/fetch-occupations', (req, res) => {
+    initializeApp();
     res.json({
         total_occupations: occList.length, 
         occupations: occList
