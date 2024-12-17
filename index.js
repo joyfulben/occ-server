@@ -47,8 +47,9 @@ app.get("/initialize-check", async (req, res) => {
     try {
         const sortedList = await initializeApp(); 
         // const sampleCheck = await axios.get(specOccAPIData+sortedList[2].id);
+        const apiID = `${sortedList[2]["id"]}`;
         if (sortedList.length) {
-            res.json({"Status": 200, "Sample Check": (specOccAPIData+sortedList[2]["id"]), "Occupation List": sortedList});
+            res.json({"Status": 200, "Sample Check": apiID, "Occupation List": sortedList});
         } else {
             res.json({"Status": 400, "Message": "No occupations found"});
         }
