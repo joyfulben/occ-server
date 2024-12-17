@@ -82,13 +82,15 @@ async function initializeApp() {
         const validatedOccupations = [];
         for (const occupation of occArray) {
             try {
-                const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
-                const response = await axiosInstance.get(occCheckUrl);
-
-                // If the response has meaningful data, add the occupation to the list
-                if (response.data.data && response.data.data.length > 0) {
-                    validatedOccupations.push(occupation);
-                }
+                setTimeout(async() => {
+                    const occCheckUrl = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occupation.id}`;
+                    const response = await axiosInstance.get(occCheckUrl);
+                    
+                    // If the response has meaningful data, add the occupation to the list
+                    if (response.data.data && response.data.data.length > 0) {
+                        validatedOccupations.push(occupation);
+                    }
+                }, 500);
             } catch (error) {
                 console.warn(`No data found for occupation ID: ${occupation.id}`);
                 // Continue without stopping execution
