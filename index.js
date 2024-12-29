@@ -71,7 +71,6 @@ function handleApiError(error, res) {
     }
 }
 
-
 // Routes with Improved Error Handling and Validation
 
 app.get("/", (req, res) => {
@@ -80,10 +79,10 @@ app.get("/", (req, res) => {
 
 app.get('/fetch-occupations', async (req, res) => {
     try {
-        const response = await axiosInstance.get(OCC_API_URL);
+        const filePath = path.join(__dirname, "occref.json");
+        const jsonData = JSON.parse(await fs.readFile(filePath, "utf-8"));
 
-        const occArray = response.data.results
-            .filter(occ => occ && occ.id && !occ.id.includes("X"))
+        const occArray = jsonData.occupations
             .map(occ => ({
                 id: occ.id,
                 label: occ.name
