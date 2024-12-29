@@ -181,7 +181,7 @@ app.get('/occupations', async (req, res) => {
 });
 app.get('/test', (req, res)=>{
     try {   
-        const jsonData = JSON.parse(fs.readFileSync("./occ-ref.json", "utf-8"));
+        const jsonData = JSON.parse(fs.readFileSync("/occ-ref.json", "utf-8"));
         res.json(jsonData);
     } catch (error) {
         res.json({"Error parsing JSON":error});
