@@ -1,10 +1,15 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
+import { fileURLToPath } from "url";
 import path from "path";
 import { promises as fs } from "fs";
 
 const app = express();
+
+// Recreate __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Environment Configuration
 const PORT = process.env.PORT || 4322;
@@ -182,12 +187,16 @@ app.get('/occupations', async (req, res) => {
 });
 app.get('/test', async (req, res) => {
     try {
-        const filePath = path.join(__dirname, "occref.json");
+        const filePath = path.join(__dirname, "occ-ref.json");
         const jsonData = JSON.parse(await fs.readFile(filePath, "utf-8"));
         res.json(jsonData);
     } catch (error) {
-        console.error("Error reading file:", error);
-        res.status(500).json({ error: "Failed to fetch data" });
+        if (error.code === "ENOENT") {
+            res.status(404).json({ error: "File not found" });
+        } else {
+            console.error("Error reading file:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
     }
 });
 // Start Server
