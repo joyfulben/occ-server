@@ -187,7 +187,7 @@ app.get('/occupations', async (req, res) => {
 });
 app.get('/test', async (req, res) => {
     try {
-        const filePath = path.join(__dirname, "occ-ref.json");
+        const filePath = path.join(__dirname, "occref.json");
         const jsonData = JSON.parse(await fs.readFile(filePath, "utf-8"));
         res.json(jsonData);
     } catch (error) {
