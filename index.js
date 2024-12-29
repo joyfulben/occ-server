@@ -1,7 +1,8 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
-import * as fs from "fs";
+import path from "path";
+import { promises as fs } from "fs";
 
 const app = express();
 
@@ -179,13 +180,15 @@ app.get('/occupations', async (req, res) => {
         handleApiError(error, res);
     }
 });
-app.get('/test', (req, res)=>{
-    try {   
-        const jsonData = JSON.parse(fs.readFileSync("/occ-ref.json", "utf-8"));
+app.get('/test', async (req, res) => {
+    try {
+        const filePath = path.join(__dirname, "occref.json");
+        const jsonData = JSON.parse(await fs.readFile(filePath, "utf-8"));
         res.json(jsonData);
     } catch (error) {
-        res.json({"Error parsing JSON":error});
+        console.error("Error reading file:", error);
+        res.status(500).json({ error: "Failed to fetch data" });
     }
-})
+});
 // Start Server
 app.listen(PORT, () => console.log(`Server started on Port ${PORT}`));
