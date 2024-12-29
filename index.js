@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
-import { readFileSync } from "fs";
+import { fs } from "fs";
 
 const app = express();
 
@@ -180,8 +180,12 @@ app.get('/occupations', async (req, res) => {
     }
 });
 app.get('/test', (req, res)=>{
-    const jsonData = JSON.parse(fs.readFileSync("./occ-ref.json", "utf-8"));
-    res.json(jsonData);
+    try {   
+        const jsonData = JSON.parse(fs.readFileSync("./occ-ref.json", "utf-8"));
+        res.json(jsonData);
+    } catch (error) {
+        res.error(error);
+    }
 })
 // Start Server
 app.listen(PORT, () => console.log(`Server started on Port ${PORT}`));
