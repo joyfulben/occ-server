@@ -81,8 +81,8 @@ app.get('/fetch-occupations', async (req, res) => {
     try {
         const filePath = path.join(__dirname, "occref.json");
         const jsonData = JSON.parse(await fs.readFile(filePath, "utf-8"));
-        const occArray = jsonData.occupations;
-            occArray.map(occ => ({
+        const occArray = jsonData.occupations
+            .map(occ => ({
                 id: occ.id,
                 label: occ.label
             }))
