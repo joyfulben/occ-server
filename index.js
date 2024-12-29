@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
-const occref = require("./occ-ref.json");
+import occref from "./occ-ref.json" assert {type: 'json'};
 
 const app = express();
 
