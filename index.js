@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
+const occref = require("./occ-ref.json");
 
 const app = express();
 
@@ -110,7 +111,6 @@ app.get('/occupations', async (req, res) => {
         }
 
         const occWagesData = `${DATAUSA_BASE_URL}?drilldowns=Year,State&measures=Average Wage,Average Wage Appx MOE&Record Count>=5&Workforce Status=true&Detailed Occupation=${occId}`;
-        
         const response = await axiosInstance.get(occWagesData);
         const responseArr = response.data.data;
 
@@ -179,6 +179,8 @@ app.get('/occupations', async (req, res) => {
         handleApiError(error, res);
     }
 });
-
+app.get('/test', (req, res)=>{
+    res.json(occref);
+})
 // Start Server
 app.listen(PORT, () => console.log(`Server started on Port ${PORT}`));
