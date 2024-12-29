@@ -84,7 +84,7 @@ app.get('/fetch-occupations', async (req, res) => {
         const occArray = jsonData.occupations;
             occArray.map(occ => ({
                 id: occ.id,
-                label: occ.title
+                label: occ.label
             }))
             .sort((a, b) => a.label.toUpperCase().localeCompare(b.label.toUpperCase()));
             res.json({
