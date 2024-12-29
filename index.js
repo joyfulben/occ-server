@@ -184,7 +184,7 @@ app.get('/test', (req, res)=>{
         const jsonData = JSON.parse(fs.readFileSync("./occ-ref.json", "utf-8"));
         res.json(jsonData);
     } catch (error) {
-        res.error(error);
+        res.json({"Error parsing JSON":error});
     }
 })
 // Start Server
